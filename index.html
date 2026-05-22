@@ -224,221 +224,229 @@
     </div>
 
     <script>
-        // Игровые данные
-        let gameState = {
-            balance: 0,
-            currentFruitIndex: 0,
-            upgrades: [
-                { id: "clickPower", name: "🍴 Сила клика", desc: "+1 монета за клик", basePrice: 10, level: 0, valuePerLevel: 1, type: "click" },
-                { id: "passive", name: "🍃 Садовник", desc: "+1 монета/сек", basePrice: 25, level: 0, valuePerLevel: 1, type: "passive" },
-                { id: "fruitMaster", name: "🌟 Фруктовый магнат", desc: "Улучшает фрукт (+бонус к клику и пассивке)", basePrice: 100, level: 0, valuePerLevel: 0.5, type: "master" }
-            ]
-        };
+        // ВСЯ ЛОГИКА ЗАВЕРНУТА В DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Игровые данные
+            let gameState = {
+                balance: 0,
+                currentFruitIndex: 0,
+                upgrades: [
+                    { id: "clickPower", name: "🍴 Сила клика", desc: "+1 монета за клик", basePrice: 10, level: 0, valuePerLevel: 1, type: "click" },
+                    { id: "passive", name: "🍃 Садовник", desc: "+1 монета/сек", basePrice: 25, level: 0, valuePerLevel: 1, type: "passive" },
+                    { id: "fruitMaster", name: "🌟 Фруктовый магнат", desc: "Улучшает фрукт (+бонус к клику и пассивке)", basePrice: 100, level: 0, valuePerLevel: 0.5, type: "master" }
+                ]
+            };
 
-        // Эволюция фруктов
-        const fruitTiers = [
-            { emoji: "🍎", name: "Яблоко", clickBonus: 1, passiveBonus: 1 },
-            { emoji: "🍊", name: "Апельсин", clickBonus: 2, passiveBonus: 1.5 },
-            { emoji: "🍍", name: "Ананас", clickBonus: 3, passiveBonus: 2 },
-            { emoji: "🍉", name: "Арбуз", clickBonus: 5, passiveBonus: 3 },
-            { emoji: "🥝", name: "Киви-джедай", clickBonus: 8, passiveBonus: 5 },
-            { emoji: "🍒", name: "Вишнёвый дракон", clickBonus: 12, passiveBonus: 8 },
-            { emoji: "🥥", name: "Кокос миллиардера", clickBonus: 20, passiveBonus: 13 }
-        ];
+            // Эволюция фруктов
+            const fruitTiers = [
+                { emoji: "🍎", name: "Яблоко", clickBonus: 1, passiveBonus: 1 },
+                { emoji: "🍊", name: "Апельсин", clickBonus: 2, passiveBonus: 1.5 },
+                { emoji: "🍍", name: "Ананас", clickBonus: 3, passiveBonus: 2 },
+                { emoji: "🍉", name: "Арбуз", clickBonus: 5, passiveBonus: 3 },
+                { emoji: "🥝", name: "Киви-джедай", clickBonus: 8, passiveBonus: 5 },
+                { emoji: "🍒", name: "Вишнёвый дракон", clickBonus: 12, passiveBonus: 8 },
+                { emoji: "🥥", name: "Кокос миллиардера", clickBonus: 20, passiveBonus: 13 }
+            ];
 
-        let passiveInterval = null;
+            let passiveInterval = null;
 
-        function getTotalClickGain() {
-            let clickUpgradeBonus = gameState.upgrades[0].level * gameState.upgrades[0].valuePerLevel;
-            let masterBonus = gameState.upgrades[2].level * gameState.upgrades[2].valuePerLevel;
-            let fruitBonus = fruitTiers[gameState.currentFruitIndex].clickBonus;
-            let base = clickUpgradeBonus + fruitBonus;
-            if (masterBonus > 0) base = Math.floor(base * (1 + masterBonus));
-            return Math.max(1, base);
-        }
-
-        function getTotalPassivePerSec() {
-            let passiveUpgrade = gameState.upgrades[1].level * gameState.upgrades[1].valuePerLevel;
-            let masterBonus = gameState.upgrades[2].level * gameState.upgrades[2].valuePerLevel;
-            let fruitPassive = fruitTiers[gameState.currentFruitIndex].passiveBonus;
-            let total = passiveUpgrade + fruitPassive;
-            if (masterBonus > 0) total = Math.floor(total * (1 + masterBonus));
-            return Math.max(0, total);
-        }
-
-        function checkFruitEvolution() {
-            let nextTierIndex = gameState.currentFruitIndex + 1;
-            if (nextTierIndex < fruitTiers.length) {
-                let requiredBalance = 300 + (nextTierIndex * 200);
-                let totalUpgradeLevels = gameState.upgrades[0].level + gameState.upgrades[1].level + gameState.upgrades[2].level;
-                if (gameState.balance >= requiredBalance || totalUpgradeLevels >= 5 + nextTierIndex * 2) {
-                    gameState.currentFruitIndex = nextTierIndex;
-                    updateFruitDisplay();
-                    showFloatingNumber("✨ ЭВОЛЮЦИЯ! ✨", 1500);
-                    return true;
-                }
+            function getTotalClickGain() {
+                let clickUpgradeBonus = gameState.upgrades[0].level * gameState.upgrades[0].valuePerLevel;
+                let masterBonus = gameState.upgrades[2].level * gameState.upgrades[2].valuePerLevel;
+                let fruitBonus = fruitTiers[gameState.currentFruitIndex].clickBonus;
+                let base = clickUpgradeBonus + fruitBonus;
+                if (masterBonus > 0) base = Math.floor(base * (1 + masterBonus));
+                return Math.max(1, base);
             }
-            return false;
-        }
 
-        function updateFruitDisplay() {
-            let fruit = fruitTiers[gameState.currentFruitIndex];
-            document.getElementById("fruitEmoji").textContent = fruit.emoji;
-        }
-
-        function showFloatingNumber(text, duration = 800) {
-            const div = document.createElement("div");
-            div.textContent = text;
-            div.style.position = "fixed";
-            div.style.left = "50%";
-            div.style.top = "40%";
-            div.style.transform = "translate(-50%, 0)";
-            div.style.fontSize = "2rem";
-            div.style.fontWeight = "bold";
-            div.style.color = "#ffdd99";
-            div.style.textShadow = "0 0 5px black";
-            div.style.pointerEvents = "none";
-            div.style.zIndex = "1000";
-            div.style.transition = "all 0.6s ease-out";
-            div.style.opacity = "1";
-            document.body.appendChild(div);
-            
-            requestAnimationFrame(() => {
-                div.style.transform = "translate(-50%, -70px)";
-                div.style.opacity = "0";
-            });
-            
-            setTimeout(() => div.remove(), duration);
-        }
-
-        function updateUI() {
-            document.getElementById("balance").textContent = Math.floor(gameState.balance);
-            document.getElementById("passiveIncome").textContent = getTotalPassivePerSec();
-            renderUpgrades();
-            updateFruitDisplay();
-            saveGame();
-        }
-
-        function buyUpgrade(index) {
-            const upgrade = gameState.upgrades[index];
-            let cost = Math.floor(upgrade.basePrice * (1 + upgrade.level * 0.6));
-            if (gameState.balance >= cost) {
-                gameState.balance -= cost;
-                upgrade.level++;
-                checkFruitEvolution();
-                updateUI();
-                showFloatingNumber(`📈 ${upgrade.name} lvl ${upgrade.level}`, 700);
-            } else {
-                showFloatingNumber("😫 Не хватает монет", 500);
+            function getTotalPassivePerSec() {
+                let passiveUpgrade = gameState.upgrades[1].level * gameState.upgrades[1].valuePerLevel;
+                let masterBonus = gameState.upgrades[2].level * gameState.upgrades[2].valuePerLevel;
+                let fruitPassive = fruitTiers[gameState.currentFruitIndex].passiveBonus;
+                let total = passiveUpgrade + fruitPassive;
+                if (masterBonus > 0) total = Math.floor(total * (1 + masterBonus));
+                return Math.max(0, total);
             }
-        }
 
-        function renderUpgrades() {
-            const container = document.getElementById("upgradesList");
-            container.innerHTML = "";
-            gameState.upgrades.forEach((up, idx) => {
-                let cost = Math.floor(up.basePrice * (1 + up.level * 0.6));
-                let effectText = "";
-                if (up.type === "click") {
-                    effectText = `Ур.${up.level} (+${up.level * up.valuePerLevel} → всего ${getTotalClickGain()} за клик)`;
-                } else if (up.type === "passive") {
-                    effectText = `Ур.${up.level} (+${up.level * up.valuePerLevel} → ${getTotalPassivePerSec()}/сек)`;
-                } else {
-                    effectText = `Ур.${up.level} (x${(1 + up.level * up.valuePerLevel).toFixed(1)} множитель)`;
-                }
-                
-                const div = document.createElement("div");
-                div.className = "upgrade-item";
-                div.innerHTML = `
-                    <div class="upgrade-info">
-                        <div class="upgrade-name">${up.name}</div>
-                        <div class="upgrade-desc">${up.desc}</div>
-                        <div class="upgrade-stats">${effectText}</div>
-                    </div>
-                    <button class="upgrade-btn" data-idx="${idx}">${Math.floor(cost)} 🪙</button>
-                `;
-                container.appendChild(div);
-            });
-            
-            document.querySelectorAll(".upgrade-btn").forEach(btn => {
-                btn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    let idx = parseInt(btn.getAttribute("data-idx"));
-                    buyUpgrade(idx);
-                });
-            });
-        }
-
-        function handleClick() {
-            let gain = getTotalClickGain();
-            gameState.balance += gain;
-            
-            const fruitArea = document.getElementById("fruitClickArea");
-            fruitArea.style.transform = "scale(0.96)";
-            setTimeout(() => { fruitArea.style.transform = ""; }, 90);
-            
-            showFloatingNumber(`+${gain}`);
-            checkFruitEvolution();
-            updateUI();
-        }
-
-        function resetGame() {
-            if (confirm("Сбросить весь прогресс?")) {
-                gameState = {
-                    balance: 0,
-                    currentFruitIndex: 0,
-                    upgrades: [
-                        { id: "clickPower", name: "🍴 Сила клика", desc: "+1 монета за клик", basePrice: 10, level: 0, valuePerLevel: 1, type: "click" },
-                        { id: "passive", name: "🍃 Садовник", desc: "+1 монета/сек", basePrice: 25, level: 0, valuePerLevel: 1, type: "passive" },
-                        { id: "fruitMaster", name: "🌟 Фруктовый магнат", desc: "Улучшает фрукт (+бонус к клику и пассивке)", basePrice: 100, level: 0, valuePerLevel: 0.5, type: "master" }
-                    ]
-                };
-                updateUI();
-                showFloatingNumber("♻️ Прогресс сброшен", 1000);
-            }
-        }
-
-        function saveGame() {
-            localStorage.setItem("fruitGameSave", JSON.stringify({
-                balance: gameState.balance,
-                currentFruitIndex: gameState.currentFruitIndex,
-                upgrades: gameState.upgrades
-            }));
-        }
-
-        function loadGame() {
-            const saved = localStorage.getItem("fruitGameSave");
-            if (saved) {
-                try {
-                    const loaded = JSON.parse(saved);
-                    gameState.balance = loaded.balance ?? 0;
-                    gameState.currentFruitIndex = loaded.currentFruitIndex ?? 0;
-                    if (loaded.upgrades && loaded.upgrades.length === gameState.upgrades.length) {
-                        gameState.upgrades = loaded.upgrades;
+            function checkFruitEvolution() {
+                let nextTierIndex = gameState.currentFruitIndex + 1;
+                if (nextTierIndex < fruitTiers.length) {
+                    let requiredBalance = 300 + (nextTierIndex * 200);
+                    let totalUpgradeLevels = gameState.upgrades[0].level + gameState.upgrades[1].level + gameState.upgrades[2].level;
+                    if (gameState.balance >= requiredBalance || totalUpgradeLevels >= 5 + nextTierIndex * 2) {
+                        gameState.currentFruitIndex = nextTierIndex;
+                        updateFruitDisplay();
+                        showFloatingNumber("✨ ЭВОЛЮЦИЯ! ✨", 1500);
+                        saveGame();
+                        return true;
                     }
-                } catch(e) { console.warn(e); }
+                }
+                return false;
             }
-            updateUI();
-        }
 
-        function startPassiveIncome() {
-            if (passiveInterval) clearInterval(passiveInterval);
-            passiveInterval = setInterval(() => {
-                let income = getTotalPassivePerSec();
-                if (income > 0) {
-                    gameState.balance += income;
+            function updateFruitDisplay() {
+                let fruit = fruitTiers[gameState.currentFruitIndex];
+                document.getElementById("fruitEmoji").textContent = fruit.emoji;
+            }
+
+            function showFloatingNumber(text, duration = 800) {
+                const div = document.createElement("div");
+                div.textContent = text;
+                div.style.position = "fixed";
+                div.style.left = "50%";
+                div.style.top = "40%";
+                div.style.transform = "translate(-50%, 0)";
+                div.style.fontSize = "2rem";
+                div.style.fontWeight = "bold";
+                div.style.color = "#ffdd99";
+                div.style.textShadow = "0 0 5px black";
+                div.style.pointerEvents = "none";
+                div.style.zIndex = "1000";
+                div.style.transition = "all 0.6s ease-out";
+                div.style.opacity = "1";
+                document.body.appendChild(div);
+                
+                requestAnimationFrame(() => {
+                    div.style.transform = "translate(-50%, -70px)";
+                    div.style.opacity = "0";
+                });
+                
+                setTimeout(() => div.remove(), duration);
+            }
+
+            function updateUI() {
+                document.getElementById("balance").textContent = Math.floor(gameState.balance);
+                document.getElementById("passiveIncome").textContent = getTotalPassivePerSec();
+                renderUpgrades();
+                updateFruitDisplay();
+            }
+
+            function buyUpgrade(index) {
+                const upgrade = gameState.upgrades[index];
+                let cost = Math.floor(upgrade.basePrice * (1 + upgrade.level * 0.6));
+                if (gameState.balance >= cost) {
+                    gameState.balance -= cost;
+                    upgrade.level++;
                     checkFruitEvolution();
                     updateUI();
+                    saveGame();
+                    showFloatingNumber(`📈 ${upgrade.name} lvl ${upgrade.level}`, 700);
+                } else {
+                    showFloatingNumber("😫 Не хватает монет", 500);
                 }
-            }, 1000);
-        }
+            }
 
-        // Инициализация
-        loadGame();
-        startPassiveIncome();
-        
-        document.getElementById("fruitClickArea").addEventListener("click", handleClick);
-        document.getElementById("resetBtn").addEventListener("click", resetGame);
+            function renderUpgrades() {
+                const container = document.getElementById("upgradesList");
+                if (!container) return;
+                container.innerHTML = "";
+                gameState.upgrades.forEach((up, idx) => {
+                    let cost = Math.floor(up.basePrice * (1 + up.level * 0.6));
+                    let effectText = "";
+                    if (up.type === "click") {
+                        effectText = `Ур.${up.level} (+${up.level * up.valuePerLevel} → всего ${getTotalClickGain()} за клик)`;
+                    } else if (up.type === "passive") {
+                        effectText = `Ур.${up.level} (+${up.level * up.valuePerLevel} → ${getTotalPassivePerSec()}/сек)`;
+                    } else {
+                        effectText = `Ур.${up.level} (x${(1 + up.level * up.valuePerLevel).toFixed(1)} множитель)`;
+                    }
+                    
+                    const div = document.createElement("div");
+                    div.className = "upgrade-item";
+                    div.innerHTML = `
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">${up.name}</div>
+                            <div class="upgrade-desc">${up.desc}</div>
+                            <div class="upgrade-stats">${effectText}</div>
+                        </div>
+                        <button class="upgrade-btn" data-idx="${idx}">${Math.floor(cost)} 🪙</button>
+                    `;
+                    container.appendChild(div);
+                });
+                
+                document.querySelectorAll(".upgrade-btn").forEach(btn => {
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        let idx = parseInt(btn.getAttribute("data-idx"));
+                        buyUpgrade(idx);
+                    });
+                });
+            }
+
+            function handleClick() {
+                let gain = getTotalClickGain();
+                gameState.balance += gain;
+                
+                const fruitArea = document.getElementById("fruitClickArea");
+                fruitArea.style.transform = "scale(0.96)";
+                setTimeout(() => { fruitArea.style.transform = ""; }, 90);
+                
+                showFloatingNumber(`+${gain}`);
+                checkFruitEvolution();
+                updateUI();
+                saveGame();
+            }
+
+            function resetGame() {
+                if (confirm("Сбросить весь прогресс?")) {
+                    gameState = {
+                        balance: 0,
+                        currentFruitIndex: 0,
+                        upgrades: [
+                            { id: "clickPower", name: "🍴 Сила клика", desc: "+1 монета за клик", basePrice: 10, level: 0, valuePerLevel: 1, type: "click" },
+                            { id: "passive", name: "🍃 Садовник", desc: "+1 монета/сек", basePrice: 25, level: 0, valuePerLevel: 1, type: "passive" },
+                            { id: "fruitMaster", name: "🌟 Фруктовый магнат", desc: "Улучшает фрукт (+бонус к клику и пассивке)", basePrice: 100, level: 0, valuePerLevel: 0.5, type: "master" }
+                        ]
+                    };
+                    updateUI();
+                    saveGame();
+                    showFloatingNumber("♻️ Прогресс сброшен", 1000);
+                }
+            }
+
+            function saveGame() {
+                localStorage.setItem("fruitGameSave", JSON.stringify({
+                    balance: gameState.balance,
+                    currentFruitIndex: gameState.currentFruitIndex,
+                    upgrades: gameState.upgrades
+                }));
+            }
+
+            function loadGame() {
+                const saved = localStorage.getItem("fruitGameSave");
+                if (saved) {
+                    try {
+                        const loaded = JSON.parse(saved);
+                        gameState.balance = loaded.balance ?? 0;
+                        gameState.currentFruitIndex = loaded.currentFruitIndex ?? 0;
+                        if (loaded.upgrades && loaded.upgrades.length === gameState.upgrades.length) {
+                            gameState.upgrades = loaded.upgrades;
+                        }
+                    } catch(e) { console.warn(e); }
+                }
+                updateUI();
+            }
+
+            function startPassiveIncome() {
+                if (passiveInterval) clearInterval(passiveInterval);
+                passiveInterval = setInterval(() => {
+                    let income = getTotalPassivePerSec();
+                    if (income > 0) {
+                        gameState.balance += income;
+                        checkFruitEvolution();
+                        updateUI();
+                        saveGame();
+                    }
+                }, 1000);
+            }
+
+            // ЗАПУСК ВСЕГО
+            loadGame();
+            startPassiveIncome();
+            
+            document.getElementById("fruitClickArea").addEventListener("click", handleClick);
+            document.getElementById("resetBtn").addEventListener("click", resetGame);
+        });
     </script>
 </body>
 </html>
